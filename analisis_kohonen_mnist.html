@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis Técnico Completo: Red Neuronal Kohonen 3D para MNIST</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(0, 255, 127, 0.1);
+            border: 2px solid #00ff7f;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 255, 127, 0.3);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            color: #00ff7f;
+            text-shadow: 0 0 20px rgba(0, 255, 127, 0.5);
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            color: #b0b0b0;
+        }
+        
+        .section {
+            margin: 30px 0;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #00ff7f;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .section h2 {
+            color: #00ff7f;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section h2:before {
+            content: "▶";
+            margin-right: 10px;
+            color: #ff6b6b;
+        }
+        
+        .code-block {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            overflow-x: auto;
+            position: relative;
+        }
+        
+        .code-block:before {
+            content: attr(data-lang);
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: #ff6b6b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+        
+        .code-block pre {
+            color: #c9d1d9;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        
+        .highlight-green { color: #7ee787; }
+        .highlight-blue { color: #58a6ff; }
+        .highlight-yellow { color: #f2cc60; }
+        .highlight-red { color: #ff7b72; }
+        .highlight-purple { color: #d2a8ff; }
+        .highlight-orange { color: #ffa657; }
+        
+        .architecture-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .card {
+            background: rgba(0, 255, 127, 0.1);
+            border: 1px solid #00ff7f;
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 127, 0.2);
+        }
+        
+        .card h3 {
+            color: #00ff7f;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .parameters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .param {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid #ff6b6b;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .param .name {
+            color: #ff6b6b;
+        }
+        
+        .param .value {
+            color: #7ee787;
+        }
+        
+        .visualization {
+            text-align: center;
+            margin: 30px 0;
+            padding: 30px;
+            background: rgba(88, 166, 255, 0.1);
+            border: 2px dashed #58a6ff;
+            border-radius: 15px;
+        }
+        
+        .cube-representation {
+            display: inline-block;
+            font-size: 2em;
+            margin: 20px;
+            animation: rotate 4s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotateY(0deg) rotateX(0deg); }
+            to { transform: rotateY(360deg) rotateX(360deg); }
+        }
+        
+        .process-flow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .flow-step {
+            background: rgba(210, 168, 255, 0.2);
+            border: 2px solid #d2a8ff;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            flex: 1;
+            margin: 5px;
+            min-width: 150px;
+        }
+        
+        .flow-arrow {
+            font-size: 2em;
+            color: #ffa657;
+            margin: 0 10px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat {
+            background: rgba(255, 167, 87, 0.2);
+            border: 1px solid #ffa657;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            color: #ffa657;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            color: #b0b0b0;
+            font-size: 0.9em;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            border-top: 2px solid #00ff7f;
+            color: #b0b0b0;
+        }
+        
+        @media (max-width: 768px) {
+            .process-flow {
+                flex-direction: column;
+            }
+            
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Red Neuronal Kohonen 3D para MNIST</h1>
+            <p>Análisis Visual del Código: Self-Organizing Map con Visualización OpenGL</p>
+        </div>
+
+        <div class="section">
+            <h2>📊 Parámetros del Sistema</h2>
+            <div class="parameters">
+                <div class="param">
+                    <span class="name">SOM_SIZE:</span>
+                    <span class="value">8³ = 512 neuronas</span>
+                </div>
+                <div class="param">
+                    <span class="name">INPUT_SIZE:</span>
+                    <span class="value">784 píxeles (28×28)</span>
+                </div>
+                <div class="param">
+                    <span class="name">EPOCHS:</span>
+                    <span class="value">100 iteraciones</span>
+                </div>
+                <div class="param">
+                    <span class="name">SAMPLES:</span>
+                    <span class="value">1000 por época</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🏗️ Arquitectura de la Red Kohonen</h2>
+            <div class="code-block" data-lang="C++">
+                <pre><span class="highlight-blue">struct</span> <span class="highlight-green">Kohonen3D</span> {
+    <span class="highlight-purple">std::vector</span>&lt;<span class="highlight-purple">std::vector</span>&lt;<span class="highlight-purple">std::vector</span>&lt;<span class="highlight-purple">std::vector</span>&lt;<span class="highlight-yellow">float</span>&gt;&gt;&gt;&gt; <span class="highlight-green">weights</span>;
+    
+    <span class="highlight-green">Kohonen3D</span>() {
+        <span class="highlight-green">weights</span>.<span class="highlight-blue">resize</span>(<span class="highlight-orange">SOM_SIZE</span>, 
+            <span class="highlight-purple">std::vector</span>&lt;<span class="highlight-purple">std::vector</span>&lt;<span class="highlight-purple">std::vector</span>&lt;<span class="highlight-yellow">float</span>&gt;&gt;&gt;(
+                <span class="highlight-orange">SOM_SIZE</span>,
+                <span class="highlight-purple">std::vector</span>&lt;<span class="highlight-purple">std::vector</span>&lt;<span class="highlight-yellow">float</span>&gt;&gt;(
+                    <span class="highlight-orange">SOM_SIZE</span>,
+                    <span class="highlight-purple">std::vector</span>&lt;<span class="highlight-yellow">float</span>&gt;(<span class="highlight-orange">INPUT_SIZE</span>)
+                )
+            ));
+    }
+};</pre>
+            </div>
+            
+            <div class="visualization">
+                <div class="cube-representation">🎲</div>
+                <p><strong>Cubo 3D de Neuronas:</strong> Cada neurona conecta con 784 píxeles de entrada</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Algoritmo BMU (Best Matching Unit)</h2>
+            <div class="code-block" data-lang="C++">
+                <pre><span class="highlight-red">// Búsqueda de la neurona más similar</span>
+<span class="highlight-blue">for</span> (<span class="highlight-yellow">int</span> x = <span class="highlight-orange">0</span>; x &lt; <span class="highlight-orange">SOM_SIZE</span>; ++x) {
+    <span class="highlight-blue">for</span> (<span class="highlight-yellow">int</span> y = <span class="highlight-orange">0</span>; y &lt; <span class="highlight-orange">SOM_SIZE</span>; ++y) {
+        <span class="highlight-blue">for</span> (<span class="highlight-yellow">int</span> z = <span class="highlight-orange">0</span>; z &lt; <span class="highlight-orange">SOM_SIZE</span>; ++z) {
+            <span class="highlight-yellow">float</span> dist = <span class="highlight-orange">0.0f</span>;
+            <span class="highlight-blue">for</span> (<span class="highlight-yellow">int</span> k = <span class="highlight-orange">0</span>; k &lt; <span class="highlight-orange">INPUT_SIZE</span>; ++k) {
+                <span class="highlight-yellow">float</span> diff = sample[k] - som.weights[x][y][z][k];
+                dist += diff * diff;  <span class="highlight-red">// Distancia euclidiana</span>
+            }
+            
+            <span class="highlight-blue">if</span> (dist &lt; minDist) {
+                minDist = dist;
+                bmuX = x; bmuY = y; bmuZ = z;
+            }
+        }
+    }
+}</pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔄 Proceso de Entrenamiento</h2>
+            <div class="process-flow">
+                <div class="flow-step">
+                    <strong>1. Cargar MNIST</strong><br>
+                    60,000 imágenes<br>
+                    28×28 píxeles
+                </div>
+                <div class="flow-arrow">➤</div>
+                <div class="flow-step">
+                    <strong>2. Inicializar Pesos</strong><br>
+                    Valores aleatorios<br>
+                    [0.0, 1.0]
+                </div>
+                <div class="flow-arrow">➤</div>
+                <div class="flow-step">
+                    <strong>3. Encontrar BMU</strong><br>
+                    Distancia euclidiana<br>
+                    mínima
+                </div>
+                <div class="flow-arrow">➤</div>
+                <div class="flow-step">
+                    <strong>4. Actualizar Pesos</strong><br>
+                    Función gaussiana<br>
+                    de vecindario
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Actualización de Pesos con Función Gaussiana</h2>
+            <div class="code-block" data-lang="C++">
+                <pre><span class="highlight-red">// Cálculo de distancia 3D desde BMU</span>
+<span class="highlight-yellow">float</span> d = <span class="highlight-green">sqrt</span>(
+    <span class="highlight-green">pow</span>(x - bmuX, <span class="highlight-orange">2</span>) + 
+    <span class="highlight-green">pow</span>(y - bmuY, <span class="highlight-orange">2</span>) + 
+    <span class="highlight-green">pow</span>(z - bmuZ, <span class="highlight-orange">2</span>)
+);
+
+<span class="highlight-blue">if</span> (d &lt;= radius) {
+    <span class="highlight-red">// Influencia gaussiana</span>
+    <span class="highlight-yellow">float</span> influence = <span class="highlight-green">exp</span>(-(d * d) / (<span class="highlight-orange">2</span> * radius * radius));
+    
+    <span class="highlight-blue">for</span> (<span class="highlight-yellow">int</span> k = <span class="highlight-orange">0</span>; k &lt; <span class="highlight-orange">INPUT_SIZE</span>; ++k) {
+        som.weights[x][y][z][k] += 
+            learningRate * influence * 
+            (sample[k] - som.weights[x][y][z][k]);
+    }
+}</pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎨 Visualización OpenGL</h2>
+            <div class="architecture-grid">
+                <div class="card">
+                    <h3>🖼️ Renderizado de Patrones</h3>
+                    <div class="code-block" data-lang="C++">
+                        <pre><span class="highlight-red">// Convertir pesos a imagen 28x28</span>
+<span class="highlight-purple">std::vector</span>&lt;<span class="highlight-yellow">unsigned char</span>&gt; imageData(<span class="highlight-orange">28</span> * <span class="highlight-orange">28</span>);
+<span class="highlight-blue">for</span> (<span class="highlight-yellow">int</span> i = <span class="highlight-orange">0</span>; i &lt; <span class="highlight-orange">28</span> * <span class="highlight-orange">28</span>; ++i) {
+    imageData[i] = <span class="highlight-blue">static_cast</span>&lt;<span class="highlight-yellow">unsigned char</span>&gt;(
+        som.weights[x][y][z][i] * <span class="highlight-orange">255</span>
+    );
+}</pre>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>🎥 Cámara Orbital</h3>
+                    <div class="code-block" data-lang="C++">
+                        <pre><span class="highlight-yellow">float</span> cameraDistance = <span class="highlight-orange">SOM_SIZE</span> * <span class="highlight-orange">2.5f</span>;
+<span class="highlight-yellow">float</span> camX = <span class="highlight-green">sin</span>(rotationAngle) * cameraDistance;
+<span class="highlight-yellow">float</span> camZ = <span class="highlight-green">cos</span>(rotationAngle) * cameraDistance;
+
+<span class="highlight-purple">glm::mat4</span> view = <span class="highlight-purple">glm::</span><span class="highlight-green">lookAt</span>(
+    <span class="highlight-purple">glm::</span><span class="highlight-green">vec3</span>(camX, cameraDistance * <span class="highlight-orange">0.7f</span>, camZ),
+    <span class="highlight-purple">glm::</span><span class="highlight-green">vec3</span>(<span class="highlight-orange">SOM_SIZE</span>/<span class="highlight-orange">2.0f</span>),
+    <span class="highlight-purple">glm::</span><span class="highlight-green">vec3</span>(<span class="highlight-orange">0.0f</span>, <span class="highlight-orange">1.0f</span>, <span class="highlight-orange">0.0f</span>)
+);</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📈 Estadísticas del Sistema</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number">512</div>
+                    <div class="stat-label">Neuronas Totales</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">296</div>
+                    <div class="stat-label">Neuronas Superficie</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">784</div>
+                    <div class="stat-label">Conexiones por Neurona</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">401,408</div>
+                    <div class="stat-label">Pesos Totales</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Características Técnicas</h2>
+            <div class="architecture-grid">
+                <div class="card">
+                    <h3>💾 Persistencia</h3>
+                    <p>Sistema de guardado/carga de pesos entrenados en formato binario, evitando re-entrenar el modelo.</p>
+                </div>
+                
+                <div class="card">
+                    <h3>⚡ Optimización</h3>
+                    <p>Renderizado solo de la superficie del cubo (296 neuronas vs 512 totales) para mejor rendimiento.</p>
+                </div>
+                
+                <div class="card">
+                    <h3>📊 Evaluación</h3>
+                    <p>Sistema de métricas que mide precisión y activaciones neuronales durante la fase de prueba.</p>
+                </div>
+                
+                <div class="card">
+                    <h3>🎮 Interactivo</h3>
+                    <p>Visualización 3D en tiempo real con rotación automática y controles de teclado (ESC para salir).</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Flujo de Ejecución Principal</h2>
+            <div class="code-block" data-lang="C++">
+                <pre><span class="highlight-yellow">int</span> <span class="highlight-green">main</span>() {
+    <span class="highlight-red">// 1. Cargar dataset MNIST</span>
+    mnist::<span class="highlight-purple">MNIST_dataset</span> dataset = mnist::<span class="highlight-green">read_dataset</span>(MNIST_DATA_LOCATION);
+    
+    <span class="highlight-red">// 2. Crear y ejecutar visualizador</span>
+    <span class="highlight-purple">SOMVisualizer</span> visualizer;
+    visualizer.<span class="highlight-green">run</span>(dataset);
+    
+    <span class="highlight-blue">return</span> <span class="highlight-orange">0</span>;
+}</pre>
+            </div>
+            
+            <div class="process-flow">
+                <div class="flow-step">
+                    <strong>Inicializar SOM</strong><br>
+                    Cargar/Crear pesos
+                </div>
+                <div class="flow-arrow">➤</div>
+                <div class="flow-step">
+                    <strong>Entrenar</strong><br>
+                    100 épocas
+                </div>
+                <div class="flow-arrow">➤</div>
+                <div class="flow-step">
+                    <strong>Evaluar</strong><br>
+                    200 muestras test
+                </div>
+                <div class="flow-arrow">➤</div>
+                <div class="flow-step">
+                    <strong>Visualizar</strong><br>
+                    OpenGL 3D
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>🚀 <strong>Red Neuronal Kohonen 3D</strong> - Combinando aprendizaje no supervisado con visualización interactiva</p>
+            <p>Proyecto basado en C++, OpenGL, GLFW, GLEW y GLM | Dataset MNIST</p>
+        </div>
+    </div>
+</body>
+</html>
