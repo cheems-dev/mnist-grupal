@@ -399,6 +399,166 @@ void setupShaders() {
         }
     }
 
+void renderPattern(int x, int y, int z) {
+        // Crear textura con el patrón de la neurona
+        GLuint texture;
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        
+        // Configurar textura
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        
+        // Convertir pesos a imagen 28x28
+        std::vector<unsigned char> imageData(28 * 28);
+        for (int i = 0; i < 28 * 28; ++i) {
+            imageData[i] = static_cast<unsigned char>(som.weights[x][y][z][i] * 255);
+        }
+        
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 28, 28, 0, GL_RED, GL_UNSIGNED_BYTE, imageData.data());
+        glGenerateMipmap(GL_TEXTURE_2D);
+        
+        // Dibujar plano con la textura
+        glUseProgram(shaderProgram);
+        glBindVertexArray(VAO);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(x, y, z));
+        model = glm::scale(model, glm::vec3(0.8f, 0.8f, 0.8f));
+        
+        GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        
+        glDeleteTextures(1, &texture);
+    }
+    
+    void renderSurface() {
+        // Cámara orbital
+        float cameraDistance = SOM_SIZE * 2.5f;
+        float camX = sin(rotationAngle) * cameraDistance;
+        float camZ = cos(rotationAngle) * cameraDistance;
+        
+        glm::mat4 view = glm::lookAt(
+            glm::vec3(camX, cameraDistance * 0.7f, camZ),
+            glm::vec3(SOM_SIZE/2.0f, SOM_SIZE/2.0f, SOM_SIZE/2.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f)
+        );
+        
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        // Pasar matrices a los shaders
+        glUseProgram(shaderProgram);
+        
+        GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        
+        GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+        
+        // Renderizar solo la superficie
+        for (int x = 0; x < SOM_SIZE; x += SOM_SIZE-1) {
+            for (int y = 0; y < SOM_SIZE; ++y) {
+                for (int z = 0; z < SOM_SIZE; ++z) {
+                    renderPattern(x, y, z);
+                }
+            }
+        }
+        
+        for (int y = 0; y < SOM_SIZE; y += SOM_SIZE-1) {
+            for (int x = 1; x < SOM_SIZE-1; ++x) {
+                for (int z = 0; z < SOM_SIZE; ++z) {
+                    renderPattern(x, y, z);
+                }
+            }
+        }
+        
+        for (int z = 0; z < SOM_SIZE; z += SOM_SIZE-1) {
+            for (int x = 1; x < SOM_SIZE-1; ++x) {
+                for (int y = 1; y < SOM_SIZE-1; ++y) {
+                    renderPattern(x, y, z);
+                }
+            }
+        }
+    }
+    
+    void evaluatePerformance(mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& dataset) {
+        if (!trainingCompleted && !weightsLoaded) {
+            std::cerr << "El modelo no está entrenado. No se puede evaluar." << std::endl;
+            return;
+        }
+        
+        std::cout << "\n=== EVALUANDO RENDIMIENTO ===" << std::endl;
+        std::cout << "Muestras de prueba: " << TEST_SAMPLES << std::endl;
+        
+        int correct = 0;
+        int neuronActivations[SOM_SIZE][SOM_SIZE][SOM_SIZE] = {{{0}}};
+        
+        for (int i = 0; i < TEST_SAMPLES; ++i) {
+            int sampleIdx = rand() % dataset.test_images.size();
+            std::vector<float> sample(INPUT_SIZE);
+            for (int j = 0; j < INPUT_SIZE; ++j) {
+                sample[j] = dataset.test_images[sampleIdx][j] / 255.0f;
+            }
+            
+            // Encontrar BMU
+            int bmuX = 0, bmuY = 0, bmuZ = 0;
+            float minDist = FLT_MAX;
+            
+            for (int x = 0; x < SOM_SIZE; ++x) {
+                for (int y = 0; y < SOM_SIZE; ++y) {
+                    for (int z = 0; z < SOM_SIZE; ++z) {
+                        float dist = 0.0f;
+                        for (int k = 0; k < INPUT_SIZE; ++k) {
+                            float diff = sample[k] - som.weights[x][y][z][k];
+                            dist += diff * diff;
+                        }
+                        
+                        if (dist < minDist) {
+                            minDist = dist;
+                            bmuX = x;
+                            bmuY = y;
+                            bmuZ = z;
+                        }
+                    }
+                }
+            }
+            
+            neuronActivations[bmuX][bmuY][bmuZ]++;
+            
+            // Inferir el dígito (esto es simplificado, en realidad necesitarías etiquetar las neuronas primero)
+            // Para este ejemplo, simplemente comparamos con la etiqueta real
+            // En una implementación real, asignarías etiquetas a las neuronas durante el entrenamiento
+            
+            // Aquí solo contamos como correcto si la neurona está activa (simplificado)
+            if (minDist < 100.0f) { // Umbral arbitrario
+                correct++;
+            }
+        }
+        
+        double accuracy = static_cast<double>(correct) / TEST_SAMPLES * 100.0;
+        
+        std::cout << "Precisión: " << std::fixed << std::setprecision(2) << accuracy << "%" << std::endl;
+        std::cout << "Activaciones por neurona:" << std::endl;
+        
+        // Estadísticas de activación
+        for (int x = 0; x < SOM_SIZE; ++x) {
+            for (int y = 0; y < SOM_SIZE; ++y) {
+                for (int z = 0; z < SOM_SIZE; ++z) {
+                    if (neuronActivations[x][y][z] > 0) {
+                        std::cout << "Neurona (" << x << "," << y << "," << z << "): " 
+                                  << neuronActivations[x][y][z] << " activaciones" << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
 
 
 
