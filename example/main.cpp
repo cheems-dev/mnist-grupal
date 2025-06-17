@@ -92,3 +92,70 @@ public:
         
         return true;
     }
+
+
+
+
+
+
+
+
+
+
+//jayan - run y main
+void run(mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& dataset) {
+        initializeSOM();
+        
+        if (!weightsLoaded) {
+            trainSOM(dataset);
+        }
+        else {
+            trainingCompleted = true;
+        }
+        
+        // Evaluar rendimiento
+        evaluatePerformance(dataset);
+        
+        // Inicializar y mostrar OpenGL
+        if (!initGL()) {
+            std::cerr << "Error al inicializar OpenGL" << std::endl;
+            return;
+        }
+        
+        // Bucle principal de renderizado
+        while (!glfwWindowShouldClose(window)) {
+            rotationAngle += 0.005f; // Rotación automática
+            
+            renderSurface();
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+            
+            // Salir con ESC
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+                glfwSetWindowShouldClose(window, true);
+            }
+        }
+        
+        // Limpieza
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO);
+        glfwTerminate();
+    }
+};
+
+int main() {
+    // Cargar dataset MNIST
+    std::cout << "Cargando dataset MNIST..." << std::endl;
+    mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset =
+        mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>(MNIST_DATA_LOCATION);
+    
+    std::cout << "Datos cargados:" << std::endl;
+    std::cout << " - Muestras entrenamiento: " << dataset.training_images.size() << std::endl;
+    std::cout << " - Muestras prueba: " << dataset.test_images.size() << std::endl;
+    
+    // Crear y ejecutar visualizador
+    SOMVisualizer visualizer;
+    visualizer.run(dataset);
+    
+    return 0;
+}
