@@ -2,6 +2,10 @@
 
 Este proyecto implementa una **Red de Mapas Auto-Organizados (SOM) tridimensional** para la clasificación y visualización del dataset MNIST utilizando C++ y OpenGL.
 
+## Demo
+
+<video src="cubo-3d.mp4" controls width="100%"></video>
+
 ## 🎯 Descripción del Proyecto
 
 La aplicación entrena una red neuronal de Kohonen en formato de cubo 3D (8×8×8 neuronas) para procesar dígitos manuscritos del dataset MNIST. La implementación incluye:
