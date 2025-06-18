@@ -4,7 +4,7 @@ Este proyecto implementa una **Red de Mapas Auto-Organizados (SOM) tridimensiona
 
 ## ▶️ Demo 
 
-https://github.com/user-attachments/assets/c6fa21b6-cc9c-40df-887d-a7625c9ae2b1
+https://github.com/user-attachments/assets/799d73e7-db60-43ab-928d-f55f9123fa0f
 
 ## 🎯 Descripción del Proyecto
 
