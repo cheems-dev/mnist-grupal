@@ -2,9 +2,9 @@
 
 Este proyecto implementa una **Red de Mapas Auto-Organizados (SOM) tridimensional** para la clasificación y visualización del dataset MNIST utilizando C++ y OpenGL.
 
-## Demo
+## ▶️ Demo 
 
-<video src="cubo-3d.mp4" controls width="100%"></video>
+https://github.com/user-attachments/assets/c6fa21b6-cc9c-40df-887d-a7625c9ae2b1
 
 ## 🎯 Descripción del Proyecto
 
